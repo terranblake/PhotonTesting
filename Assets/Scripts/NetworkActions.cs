@@ -2,7 +2,7 @@
 
 public class NetworkActions : Photon.MonoBehaviour
 {
-    // TO SHOOT A PROJECTILE:   networkActions.Fire(BulletPrefab.name, pos, _head.transform.forward, 100f, 1f);
+    // TO SHOOT A PROJECTILE:   NetworkActions.Fire(BulletPrefab.name, pos, _head.transform.forward, 100f, 1f);
     [PunRPC]
     public void Fire(string prefabName, Vector3 pos, Vector3 dir, float force, float delay)
     {
@@ -20,7 +20,7 @@ public class NetworkActions : Photon.MonoBehaviour
 
     private int itemCount = 0;
 
-    // TO CREATE AN ITEM:       networkActions.Creation(cube, new Vector3(1, 1, 1), Quaternion.identity);
+    // TO CREATE AN ITEM:       NetworkActions.Creation(cube, new Vector3(1, 1, 1), Quaternion.identity);
     [PunRPC]
     public void Creation(string toCreate, Vector3 position, Quaternion direction)
     {
@@ -36,7 +36,7 @@ public class NetworkActions : Photon.MonoBehaviour
             this.photonView.RPC("Creation", PhotonTargets.OthersBuffered, toCreate, position, direction);
     }
 
-    // TO DESTROY AN ITEM:      networkActions.Destruction(itemName);
+    // TO DESTROY AN ITEM:      NetworkActions.Destruction(itemName);
     [PunRPC]
     public void Destruction(string toDestroy)
     {
@@ -46,11 +46,11 @@ public class NetworkActions : Photon.MonoBehaviour
             Destroy(destroyMe);
 
         if (this.photonView.isMine)
-            this.photonView.RPC("Destruction", PhotonTargets.OthersBuffered, toDestroy);
+            this.photonView.RPC("Destruction", PhotonTargets.Others, toDestroy);
     }
 
-    // TO DROP AN ITEM:         networkActions.OwnershipTransfer(null, _inventoryView.viewID, 0);
-    // TO PICK UP AN ITEM:      networkActions.OwnershipTransfer(itemName, _inventoryView.viewID, -1);
+    // TO DROP AN ITEM:         NetworkActions.OwnershipTransfer(null, _inventoryView.viewID, 0);
+    // TO PICK UP AN ITEM:      NetworkActions.OwnershipTransfer(itemName, _inventoryView.viewID, -1);
     [PunRPC]
     public void OwnershipTransfer(string itemName, int parent, int invPos)
     {
