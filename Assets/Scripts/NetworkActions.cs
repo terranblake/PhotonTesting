@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class NetworkActions : Photon.MonoBehaviour
+public class NetworkedActions : Photon.MonoBehaviour
 {
     // TO SHOOT A PROJECTILE:   NetworkActions.Fire(ProjectilePrefab.name, pos, _head.transform.forward, 100f, 1f);
     [PunRPC]
@@ -85,6 +85,7 @@ public class NetworkActions : Photon.MonoBehaviour
             this.photonView.RPC("OwnershipTransfer", PhotonTargets.OthersBuffered, itemName, parent, inventoryPos);
     }
 
+    // TO DISABLE AN ITEM:      NetworkActions.RendererState(Gun, 1);
     [PunRPC]
     public void RendererState(string itemName, int state)
     {
@@ -117,17 +118,23 @@ public class NetworkActions : Photon.MonoBehaviour
             this.photonView.RPC("RendererState", PhotonTargets.OthersBuffered, itemName, state);
     }
 
+    // TO UPDATE HELD ITEM: NetworkActions.InventoryUpdate(id, Gun01);
     [PunRPC]
     public void InventoryUpdate(int inventoryId, string selectedItem)
     {
+        // Reference to inventory Transform
         Transform inventory = PhotonView.Find(inventoryId).transform;
 
+        // For every item in our inventory
         for (int x = 0; x < inventory.childCount; x++) {
+            // Store a reference to the item and all of it's renderers
             GameObject item = inventory.GetChild(x).gameObject;
             Renderer[] renderers = item.GetComponentsInChildren<Renderer>();
 
+            // Is this item the selected item ?
             bool state = item.name == selectedItem ? true: false;
 
+            // For every renderer set it to the provided state
             foreach (Renderer renders in renderers) {
                 renders.enabled = state;
             }

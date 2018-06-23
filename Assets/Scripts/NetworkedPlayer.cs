@@ -3,7 +3,7 @@
 public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
 {
     public static GameObject LocalPlayerInstance;
-    public NetworkActions networkActions;
+    public NetworkedActions networkActions;
     public GameObject ProjectilePrefab;
 
     private GameObject _mainCamera;
@@ -17,7 +17,6 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
     private PhotonView _inventoryView;
     private int _inventoryIndex;
     private string _itemToCreate;
-    private Transform inventory;
 
     void Awake()
     {
@@ -52,7 +51,6 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
         // Get the PhotonView component for our inventory, so
         //  that we know where to store items
         _inventoryView = transform.Find("Inventory").GetComponent<PhotonView>();
-        inventory = PhotonView.Find(_inventoryView.viewID).transform;
     }
 
     void Update()
@@ -131,7 +129,7 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
                         Debug.Log("Acquiring Item", this);
                         networkActions.OwnershipTransfer(itemName, _inventoryView.viewID, -1);
                         Debug.Log(_inventoryIndex);
-                        networkActions.InventoryUpdate(_inventoryView.viewID, inventory.GetChild(_inventoryIndex).name);
+                        networkActions.InventoryUpdate(_inventoryView.viewID, _inventoryView.transform.GetChild(_inventoryIndex).name);
                     }
                 }
             }
@@ -146,48 +144,45 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
 
                 Debug.Log("Dropping Item", this);
                 networkActions.OwnershipTransfer(null, _inventoryView.viewID, _inventoryIndex);
-                _inventoryIndex = _inventoryIndex > inventory.childCount - 1 ? _inventoryIndex - 1 : _inventoryIndex;
+                _inventoryIndex = _inventoryIndex > _inventoryView.transform.childCount - 1 ? _inventoryIndex - 1 : _inventoryIndex;
 
                 if (_inventoryIndex < 0)
                     _inventoryIndex = 0;
 
-                Debug.Log(item.name + "\n" + _inventoryIndex + "\n" + inventory.childCount);
+                Debug.Log(item.name + "\n" + _inventoryIndex + "\n" + _inventoryView.transform.childCount);
 
                 if (_inventoryView.transform.childCount > 0)
-                {
-                    // Next item in inventory
                     networkActions.InventoryUpdate(_inventoryView.viewID, _inventoryView.transform.GetChild(_inventoryIndex).name);
-                }
             }
         }
         // Next Item
         else if (Input.GetKeyDown(KeyCode.Equals))
         {
-            if (inventory.childCount > 0)
+            if (_inventoryView.transform.childCount > 0)
             {
                 // Is there a next item?
-                if (_inventoryIndex + 1 <= inventory.childCount - 1)
+                if (_inventoryIndex + 1 <= _inventoryView.transform.childCount - 1)
                     _inventoryIndex += 1;
                 else
                     _inventoryIndex = 0;
 
                 Debug.Log("Next Item", this);
-                networkActions.InventoryUpdate(_inventoryView.viewID, inventory.GetChild(_inventoryIndex).name);
+                networkActions.InventoryUpdate(_inventoryView.viewID, _inventoryView.transform.GetChild(_inventoryIndex).name);
             }
         }
         // Previous Item
         else if (Input.GetKeyDown(KeyCode.Minus))
         {
-            if (inventory.childCount > 0)
+            if (_inventoryView.transform.childCount > 0)
             {
                 // Is there a previous item?
                 if (_inventoryIndex - 1 < 0)
-                    _inventoryIndex = inventory.childCount - 1;
+                    _inventoryIndex = _inventoryView.transform.childCount - 1;
                 else
                     _inventoryIndex -= 1;
 
                 Debug.Log("Previous Item", this);
-                networkActions.InventoryUpdate(_inventoryView.viewID, inventory.GetChild(_inventoryIndex).name);
+                networkActions.InventoryUpdate(_inventoryView.viewID, _inventoryView.transform.GetChild(_inventoryIndex).name);
             }
         }
         // Create
