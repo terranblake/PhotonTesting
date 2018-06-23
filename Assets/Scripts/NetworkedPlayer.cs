@@ -16,9 +16,14 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
     private Rigidbody _parentRb;
     private PhotonView _inventoryView;
     private int _inventoryIndex;
+    private string _itemToCreate;
+    private Transform inventory;
 
     void Awake()
     {
+        _inventoryIndex = 0;
+        _itemToCreate = "Gun";
+
         if (photonView.isMine)
             LocalPlayerInstance = gameObject;
 
@@ -47,6 +52,7 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
         // Get the PhotonView component for our inventory, so
         //  that we know where to store items
         _inventoryView = transform.Find("Inventory").GetComponent<PhotonView>();
+        inventory = PhotonView.Find(_inventoryView.viewID).transform;
     }
 
     void Update()
@@ -77,12 +83,37 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
 
     void ProcessInputs()
     {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+            _itemToCreate = "Gun";
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+            _itemToCreate = "LongGun";
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+            _itemToCreate = "LongSword";
+
+        // Disable
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            RaycastHit hit;
+            Physics.Raycast(_head.transform.position, _head.transform.forward, out hit, 100f);
+            {
+                if (hit.transform != null)
+                {
+                    string itemName = hit.transform.name;
+
+                    if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Interactable"))
+                    {
+                        Debug.Log("Toggling Renderer State");
+                        networkActions.RendererState(itemName, -1);
+                    }
+                }
+            }
+        }
         // Fire
-        if (Input.GetKeyDown(KeyCode.F))
+        else if (Input.GetKeyDown(KeyCode.F))
         {
             Vector3 pos = _head.transform.position;
 
-            Debug.Log("Firing Projectile");
+            Debug.Log("Firing Projectile", this);
             networkActions.Fire(ProjectilePrefab.name, pos, _head.transform.forward, 100f, 1f);
         }
         // Pickup
@@ -99,6 +130,8 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
                     {
                         Debug.Log("Acquiring Item", this);
                         networkActions.OwnershipTransfer(itemName, _inventoryView.viewID, -1);
+                        Debug.Log(_inventoryIndex);
+                        networkActions.InventoryUpdate(_inventoryView.viewID, inventory.GetChild(_inventoryIndex).name);
                     }
                 }
             }
@@ -108,19 +141,60 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
         {
             if (_inventoryView != null && _inventoryView.transform.childCount > 0)
             {
-                Transform item = _inventoryView.transform.GetChild(0);
+                Transform item = _inventoryView.transform.GetChild(_inventoryIndex);
+                networkActions.RendererState(item.name, 1);
 
                 Debug.Log("Dropping Item", this);
-                networkActions.OwnershipTransfer(null, _inventoryView.viewID, 0);
+                networkActions.OwnershipTransfer(null, _inventoryView.viewID, _inventoryIndex);
+                _inventoryIndex = _inventoryIndex > inventory.childCount - 1 ? _inventoryIndex - 1 : _inventoryIndex;
+
+                if (_inventoryIndex < 0)
+                    _inventoryIndex = 0;
+
+                Debug.Log(item.name + "\n" + _inventoryIndex + "\n" + inventory.childCount);
+
+                if (_inventoryView.transform.childCount > 0)
+                {
+                    // Next item in inventory
+                    networkActions.InventoryUpdate(_inventoryView.viewID, _inventoryView.transform.GetChild(_inventoryIndex).name);
+                }
+            }
+        }
+        // Next Item
+        else if (Input.GetKeyDown(KeyCode.Equals))
+        {
+            if (inventory.childCount > 0)
+            {
+                // Is there a next item?
+                if (_inventoryIndex + 1 <= inventory.childCount - 1)
+                    _inventoryIndex += 1;
+                else
+                    _inventoryIndex = 0;
+
+                Debug.Log("Next Item", this);
+                networkActions.InventoryUpdate(_inventoryView.viewID, inventory.GetChild(_inventoryIndex).name);
+            }
+        }
+        // Previous Item
+        else if (Input.GetKeyDown(KeyCode.Minus))
+        {
+            if (inventory.childCount > 0)
+            {
+                // Is there a previous item?
+                if (_inventoryIndex - 1 < 0)
+                    _inventoryIndex = inventory.childCount - 1;
+                else
+                    _inventoryIndex -= 1;
+
+                Debug.Log("Previous Item", this);
+                networkActions.InventoryUpdate(_inventoryView.viewID, inventory.GetChild(_inventoryIndex).name);
             }
         }
         // Create
         else if (Input.GetKeyDown(KeyCode.C))
         {
-            string cube = "Gun";
-
             Debug.Log("Creating Item", this);
-            networkActions.Creation(cube, new Vector3(1, 1, 1), Quaternion.identity);
+            networkActions.Creation(_itemToCreate, new Vector3(1, 1, 1), Quaternion.identity);
         }
         // Destroy
         else if (Input.GetKeyDown(KeyCode.V))

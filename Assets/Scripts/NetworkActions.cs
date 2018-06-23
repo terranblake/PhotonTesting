@@ -2,7 +2,7 @@
 
 public class NetworkActions : Photon.MonoBehaviour
 {
-    // TO SHOOT A PROJECTILE:   NetworkActions.Fire(BulletPrefab.name, pos, _head.transform.forward, 100f, 1f);
+    // TO SHOOT A PROJECTILE:   NetworkActions.Fire(ProjectilePrefab.name, pos, _head.transform.forward, 100f, 1f);
     [PunRPC]
     public void Fire(string prefabName, Vector3 pos, Vector3 dir, float force, float delay)
     {
@@ -52,7 +52,7 @@ public class NetworkActions : Photon.MonoBehaviour
     // TO DROP AN ITEM:         NetworkActions.OwnershipTransfer(null, _inventoryView.viewID, 0);
     // TO PICK UP AN ITEM:      NetworkActions.OwnershipTransfer(itemName, _inventoryView.viewID, -1);
     [PunRPC]
-    public void OwnershipTransfer(string itemName, int parent, int invPos)
+    public void OwnershipTransfer(string itemName, int parent, int inventoryPos)
     {
         GameObject item = GameObject.Find(itemName);
         GameObject parentGO = PhotonView.Find(parent).gameObject;
@@ -65,10 +65,10 @@ public class NetworkActions : Photon.MonoBehaviour
             item.transform.localEulerAngles = Vector3.zero;
             item.transform.localPosition = Vector3.zero;
         }
-        else if (invPos != -1)
+        else if (inventoryPos != -1)
         {
             //  parentGO is the object that the item will be centered on
-            Transform itemTransform = parentGO.transform.GetChild(invPos);
+            Transform itemTransform = parentGO.transform.GetChild(inventoryPos);
             Rigidbody itemRigidbody = itemTransform.GetComponent<Rigidbody>();
 
             if (itemRigidbody == null)
@@ -82,6 +82,58 @@ public class NetworkActions : Photon.MonoBehaviour
         }
 
         if (this.photonView.isMine)
-            this.photonView.RPC("OwnershipTransfer", PhotonTargets.OthersBuffered, itemName, parent, invPos);
+            this.photonView.RPC("OwnershipTransfer", PhotonTargets.OthersBuffered, itemName, parent, inventoryPos);
+    }
+
+    [PunRPC]
+    public void RendererState(string itemName, int state)
+    {
+        GameObject item = GameObject.Find(itemName);
+
+        if (item != null)
+        {
+            Renderer[] renderers = item.GetComponentsInChildren<Renderer>();
+
+            if (renderers != null)
+            {
+                bool rendererState;
+
+                if (state == -1)
+                    rendererState = !renderers[0].enabled;
+                else if (state == 0)
+                    rendererState = false;
+                else
+                    rendererState = true;
+
+                foreach (Renderer renders in renderers)
+                {
+                    if (renders.enabled != rendererState)
+                        renders.enabled = rendererState;
+                }
+            }
+        }
+
+        if (this.photonView.isMine)
+            this.photonView.RPC("RendererState", PhotonTargets.OthersBuffered, itemName, state);
+    }
+
+    [PunRPC]
+    public void InventoryUpdate(int inventoryId, string selectedItem)
+    {
+        Transform inventory = PhotonView.Find(inventoryId).transform;
+
+        for (int x = 0; x < inventory.childCount; x++) {
+            GameObject item = inventory.GetChild(x).gameObject;
+            Renderer[] renderers = item.GetComponentsInChildren<Renderer>();
+
+            bool state = item.name == selectedItem ? true: false;
+
+            foreach (Renderer renders in renderers) {
+                renders.enabled = state;
+            }
+        }
+
+        if (this.photonView.isMine)
+            this.photonView.RPC("InventoryUpdate", PhotonTargets.OthersBuffered, inventoryId, selectedItem);
     }
 }
