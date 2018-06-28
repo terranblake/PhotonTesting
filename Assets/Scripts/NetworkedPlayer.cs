@@ -87,6 +87,8 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
             _itemToCreate = "LongGun";
         else if (Input.GetKeyDown(KeyCode.Alpha3))
             _itemToCreate = "LongSword";
+        else if (Input.GetKeyDown(KeyCode.Alpha4))
+            _itemToCreate = "ScopedExample";
 
         // Disable
         if (Input.GetKeyDown(KeyCode.G))
@@ -100,7 +102,7 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
 
                     if (hit.transform.gameObject.layer == LayerMask.NameToLayer("Interactable"))
                     {
-                        Debug.Log("Toggling Renderer State");
+                        Debug.Log("Toggling Renderer State", this);
                         networkActions.RendererState(itemName, -1);
                     }
                 }
@@ -128,7 +130,6 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
                     {
                         Debug.Log("Acquiring Item", this);
                         networkActions.OwnershipTransfer(itemName, _inventoryView.viewID, -1);
-                        Debug.Log(_inventoryIndex);
                         networkActions.InventoryUpdate(_inventoryView.viewID, _inventoryView.transform.GetChild(_inventoryIndex).name);
                     }
                 }
@@ -148,8 +149,6 @@ public class NetworkedPlayer : Photon.MonoBehaviour, IPunObservable
 
                 if (_inventoryIndex < 0)
                     _inventoryIndex = 0;
-
-                Debug.Log(item.name + "\n" + _inventoryIndex + "\n" + _inventoryView.transform.childCount);
 
                 if (_inventoryView.transform.childCount > 0)
                     networkActions.InventoryUpdate(_inventoryView.viewID, _inventoryView.transform.GetChild(_inventoryIndex).name);

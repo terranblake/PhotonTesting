@@ -28,9 +28,15 @@ public class NetworkedManager : Photon.PunBehaviour
         Instance = this;
     }
 
+    public override void OnConnectedToPhoton()
+    {
+        Debug.Log("OnConnectedToPhoton()");
+    }
+
     public override void OnJoinedLobby()
     {
         Debug.Log("OnJoinedLobby()");
+        GameObject.Find("Player").AddComponent<NetworkedSocial>();
 
         RoomOptions roomOptions = new RoomOptions() { };
         PhotonNetwork.JoinOrCreateRoom(Room, roomOptions, TypedLobby.Default);
@@ -38,9 +44,15 @@ public class NetworkedManager : Photon.PunBehaviour
 
     public override void OnJoinedRoom()
     {
+        NetworkedSocial.hasJoinedRoom = true;
+
         Debug.Log("OnJoinedRoom()\t" + string.Format("{0}/{1} in {2}", PhotonNetwork.room.PlayerCount, PhotonNetwork.room.MaxPlayers, PhotonNetwork.room.Name));
         PlayerId = PhotonNetwork.player.ID;
-        
+
+        Debug.Log(string.Format("OnJoinedRoom()\tIs Joining Party: {0}", NetworkedSocial.isJoiningParty));
+        if (NetworkedSocial.isJoiningParty)
+            NetworkedSocial.LocalPartyInstance = GameObject.Find(NetworkedSocial.partyLeaderId).GetComponent<NetworkedParty>();
+
         if (NetworkedPlayer.LocalPlayerInstance == null)
         {
             Debug.Log("We are Instantiating LocalPlayer from " + SceneManagerHelper.ActiveSceneName);
