@@ -14,7 +14,6 @@ public class NamePickGui : MonoBehaviour
     {
         this.chatNewComponent = FindObjectOfType<ChatGui>();
 
-
         string prefsName = PlayerPrefs.GetString(NamePickGui.UserNamePlayerPref);
         if (!string.IsNullOrEmpty(prefsName))
         {

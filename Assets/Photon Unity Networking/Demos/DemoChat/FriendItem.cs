@@ -4,7 +4,7 @@ using System.Collections;
 using UnityEngine.UI;
 
 /// <summary>
-/// Friend UI item used to represent the friend status as well as message. 
+/// Friend UI item used to represent the friend status as well as message.
 /// It aims at showing how to share health for a friend that plays on a different room than you for example.
 /// But of course the message can be anything and a lot more complex.
 /// </summary>
@@ -31,7 +31,7 @@ public class FriendItem : MonoBehaviour {
 	}
 	
 	public void OnFriendStatusUpdate(int status, bool gotMessage, object message)
-	{
+	{		
 		string _status;
 
 		switch(status)
@@ -53,18 +53,18 @@ public class FriendItem : MonoBehaviour {
 			break;
 		case 6:
 			_status = "Playing";
-			break;	
+			break;
 		default:
 			_status = "Offline";
 			break;
 		}
-
+		Debug.Log(NameLabel.text + "\t" + _status);
 		StatusLabel.text = _status;
 
 		if (gotMessage)
 		{
 			string _health = string.Empty;
-			if (message!=null)
+			if (message != null)
 			{
 				string[] _messages = message as string[];
 				if (_messages!=null && _messages.Length>=2)

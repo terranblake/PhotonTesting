@@ -13,7 +13,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   AppID: a8d3d577-9c20-40e7-ab07-c7b62ec48c44
   VoiceAppID: 
-  ChatAppID: a8d3d577-9c20-40e7-ab07-c7b62ec48c44
+  ChatAppID: a9a4ff11-2cf9-4334-91b9-1bdef27fb398
   HostType: 1
   PreferredRegion: 1
   EnabledRegions: -1
@@ -22,9 +22,9 @@ MonoBehaviour:
   ServerPort: 5055
   VoiceServerPort: 5055
   JoinLobby: 1
-  EnableLobbyStatistics: 0
+  EnableLobbyStatistics: 1
   PunLogging: 0
-  NetworkLogging: 0
+  NetworkLogging: 5
   RunInBackground: 1
   RpcList:
   - Chat
@@ -52,4 +52,5 @@ MonoBehaviour:
   - GameObjectState
   - RendererState
   - InventoryUpdate
+  - NameChange
   DisableAutoOpenWizard: 1

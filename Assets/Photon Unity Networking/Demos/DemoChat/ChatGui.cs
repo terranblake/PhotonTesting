@@ -363,9 +363,7 @@ public class ChatGui : MonoBehaviour, IChatClientListener
 				{
 					this.InstantiateFriendButton(_friend);
 				}
-				
 			}
-			
 		}
 		
 		if (this.FriendListUiItemtoInstantiate != null)
@@ -459,7 +457,6 @@ public class ChatGui : MonoBehaviour, IChatClientListener
 		this.friendListItemLUT[friendId] = _friendItem;
 	}
 	
-	
 	public void OnUnsubscribed(string[] channels)
 	{
 		foreach (string channelName in channels)
@@ -527,7 +524,6 @@ public class ChatGui : MonoBehaviour, IChatClientListener
 	/// <param name="message">Message that user set.</param>
 	public void OnStatusUpdate(string user, int status, bool gotMessage, object message)
 	{
-		
 		Debug.LogWarning("status: " + string.Format("{0} is {1}. Msg:{2}", user, status, message));
 		
 		if (friendListItemLUT.ContainsKey(user))

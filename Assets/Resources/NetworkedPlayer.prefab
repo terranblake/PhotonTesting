@@ -22,6 +22,8 @@ GameObject:
   - component: {fileID: 114061250929786348}
   - component: {fileID: 114040190285143610}
   - component: {fileID: 114986890018022046}
+  - component: {fileID: 114963654933402932}
+  - component: {fileID: 114018429845505034}
   m_Layer: 0
   m_Name: NetworkedPlayer
   m_TagString: Untagged
@@ -246,6 +248,22 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &114018429845505034
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1408191367898386}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68744b59938c3e24dae57e0db763cf49, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isJoiningParty: 0
+  hasJoinedRoom: 0
+  photonPartyToJoin: 
+  photonNetworkName: 
+  _partyInstance: {fileID: 0}
 --- !u!114 &114040190285143610
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -400,6 +418,25 @@ MonoBehaviour:
     InterpolateOption: 0
     InterpolateMoveTowardsSpeed: 1
     InterpolateLerpSpeed: 0
+--- !u!114 &114963654933402932
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1408191367898386}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e64256ec1fc9c84aafe7181d4972e90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Channels: []
+  FriendsList: []
+  HistoryLengthToFetch: 0
+  UserName: 
+  socialActions: {fileID: 114018429845505034}
+  Invites: []
+  FriendsStatus: []
+  TestLength: 2048
 --- !u!114 &114986890018022046
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -421,6 +458,8 @@ MonoBehaviour:
   ownershipTransfer: 0
   ObservedComponents:
   - {fileID: 114061250929786348}
+  - {fileID: 114963654933402932}
+  - {fileID: 114018429845505034}
   ObservedComponentsFoldoutOpen: 1
   viewIdField: 0
   instantiationId: -1

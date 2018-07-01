@@ -143,4 +143,14 @@ public class NetworkedActions : Photon.MonoBehaviour
         if (this.photonView.isMine)
             this.photonView.RPC("InventoryUpdate", PhotonTargets.OthersBuffered, inventoryId, selectedItem);
     }
+
+    [PunRPC]
+    public void NameChange(int item, string newName) {
+        GameObject toChange = PhotonView.Find(item).gameObject;
+        toChange.name = newName;
+
+        if (this.photonView.isMine) {
+            photonView.RPC("NameChange", PhotonTargets.OthersBuffered, item, newName);
+        }
+    }
 }

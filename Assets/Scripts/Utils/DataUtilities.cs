@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Xml.Serialization;
 using UnityEngine;
 
 public class DataUtilities : MonoBehaviour
@@ -64,7 +65,7 @@ public class DataUtilities : MonoBehaviour
     {
         string FullFilePath = Application.persistentDataPath + "/" + fileName + ".bin";
         Debug.Log(FullFilePath);
-        
+
         // Check if our file exists, if it does not, just return a null object.
         if (File.Exists(FullFilePath))
         {
@@ -80,4 +81,30 @@ public class DataUtilities : MonoBehaviour
             return null;
         }
     }
+
+    public static string SerializeToString(object toSerialize)
+    {
+        XmlSerializer xmlSerializer = new XmlSerializer(toSerialize.GetType());
+
+        using (StringWriter textWriter = new StringWriter())
+        {
+            xmlSerializer.Serialize(textWriter, toSerialize);
+            return textWriter.ToString();
+        }
+    }
+
+    // public static object Deserialize(string byteArray)
+    // {
+    //     if (byteArray == null)
+    //     {
+    //         return null;
+    //     }
+    //     using (var memStream = new MemoryStream())
+    //     {
+    //         var binForm = new BinaryFormatter();
+    //         memStream.Write(byteArray, 0, byteArray.Length);
+    //         memStream.Seek(0, SeekOrigin.Begin);
+    //         return (string)binForm.Deserialize(memStream);
+    //     }
+    // }
 }

@@ -7,80 +7,47 @@ using UnityEngine.UI;
 
 public class NetworkedSocial : MonoBehaviour
 {
-    public static bool isJoiningParty = false;
-    public static bool hasJoinedRoom = false;
-    public static string partyLeaderId;
-
+    public bool isJoiningParty = false;
+    public bool hasJoinedRoom = false;
+    public string photonPartyToJoin = null;
     private string photonNetworkId = null;
-    private string photonNetworkName = null;
+    public string photonNetworkName = null;
 
-    public List<Friend> photonFriendsList = new List<Friend>();
-    public static NetworkedParty LocalPartyInstance = null;
-    private string playerDataPath = "PlayerData";
+    private NetworkedClient _client;
+    public Party _partyInstance;
 
-    private List<FriendInfo> currentFriendsStatus = null;
-    private List<RoomInfo> currentRoomsStatus = null;
-    private DataUtilities dataHandler = new DataUtilities();
+    private bool nameIsSet = false;
 
     void Awake()
     {
-        PlayerPrefs.SetString("PlayerId", "none");
-        PlayerPrefs.SetString("PlayerName", "none");
-
-        InitIdentification();
-        LoadFriendsList(playerDataPath);
-        InitFriendsStatus();
-        currentFriendsStatus = PhotonNetwork.Friends;
-
-        Debug.Log("PhotonId:\t" + PhotonNetwork.player.UserId);
-        Debug.Log("PlayerName:\t" + PhotonNetwork.player.NickName);
-
-        if (photonFriendsList != null) {
-            string friendList = null;
-
-            foreach (Friend friend in photonFriendsList) {
-                friendList = friendList + friend.playerName + friend.playerId + "\n";
-            }
-
-            Debug.Log(friendList);
-        }
     }
 
-    void Update()
+    public void InitSocial()
     {
+        photonNetworkId = (string)PhotonNetwork.player.CustomProperties["UniqueId"];
+        photonNetworkName = PhotonNetwork.player.NickName;
+
+        nameIsSet = photonNetworkName == photonNetworkId || photonNetworkName == "none" || photonNetworkName == "";
+
+        _client = GetComponent<NetworkedClient>();
+
+        Debug.Log("PhotonId:\t" + photonNetworkId);
+        Debug.Log("PlayerName:\t" + photonNetworkName);
     }
 
-    void JoinParty(string leaderId)
+    public bool SetName(string name)
     {
-        FriendInfo partyLeader = GetFriendStatus(leaderId);
-
-        if (partyLeader != null && partyLeader.IsOnline && partyLeader.IsInRoom)
-        {
-            if (IsSuitableRoom(partyLeader.Room))
-            {
-                partyLeaderId = leaderId;
-
-                PhotonNetwork.JoinRoom(partyLeader.Room);
-                isJoiningParty = true;
-            }
-        }
-    }
-
-    void CreateParty()
-    {
-
-    }
-
-    public void SetName(string name)
-    {
-        if (photonNetworkName == photonNetworkId || photonNetworkName == "none")
+        if (nameIsSet)
         {
             photonNetworkName = name;
             PhotonNetwork.playerName = photonNetworkName;
             PlayerPrefs.SetString("PlayerName", photonNetworkName);
+            return true;
         }
         else
-            Debug.Log("Player name has already been set. Not accepting name changes at this time.");
+            Debug.Log(string.Format("Player name has already been set.\t{0}", photonNetworkName));
+
+        return false;
     }
 
     public bool AddFriend(string id, string name)
@@ -89,147 +56,188 @@ public class NetworkedSocial : MonoBehaviour
         if (name == null || id == null)
             return false;
 
-        if (photonFriendsList == null)
-            photonFriendsList = new List<Friend>();
+        if (_client.FriendsStatus == null)
+            _client.FriendsStatus = new List<Friend>();
 
         // is friend already in list
-        if (photonFriendsList.Contains(new Friend(id, name)) == true)
-            return false;
-
-        //is friend online
-        //string[] friend = new string[] { id };
-        //if (PhotonNetwork.FindFriends(friend))
-        //    return false;
+        foreach (Friend friend in _client.FriendsStatus)
+        {
+            if (friend.playerId == id)
+                return false;
+        }
 
         // otherwise, add to friends list
-        photonFriendsList.Add(new Friend(id, name));
-        Debug.Log("Saved Friends:\t" + SaveFriendsList(playerDataPath));
+        _client.FriendsStatus.Add(new Friend(id, name, UserStatusCode.Online, false, false, PhotonNetwork.room.Name));
+        SaveFriendsList((string)PhotonNetwork.player.CustomProperties["UniqueId"]);
+
+        // Pass to chat client to receive updates for the newly added friend
+        _client.chatClient.AddFriends(new string[] { id });
+        _client.chatClient.PublishMessage(PhotonNetwork.room.Name, string.Format("{0} has added a new friend!", photonNetworkId));
+
         return true;
     }
 
-    bool RemoveFriend(string id)
+    public bool RemoveFriend(string id, string name)
     {
+        Debug.Log("RemoveFriend()\n" + id + "\n" + name);
+
         // null-check
-        if (id == null)
+        if (name == null || id == null)
             return false;
 
-        // check if friend exists in list
-        foreach (Friend friend in photonFriendsList)
+        if (_client.FriendsStatus == null)
+            _client.FriendsStatus = new List<Friend>();
+
+        // otherwise, remove from friends list
+        foreach (Friend friend in _client.FriendsStatus)
         {
             if (friend.playerId == id)
             {
-                photonFriendsList.Remove(new Friend(friend.playerId, friend.playerName));
-                return true;
+                _client.FriendsStatus.Remove(friend);
+                break;
             }
-
         }
+        SaveFriendsList((string)PhotonNetwork.player.CustomProperties["UniqueId"]);
 
-        return false;
+        // Pass to chat client to stop recieving updates for this player
+        _client.chatClient.RemoveFriends(new string[] { id });
+        return true;
     }
 
-    bool SaveFriendsList(string fileName)
+    void CreateParty(string creator, List<string> invited, string customName)
     {
-        if (photonFriendsList == null || photonFriendsList.Count == 0)
+        gameObject.AddComponent<Party>();
+        _partyInstance = GetComponent<Party>();
+        _partyInstance.InitParty(
+            new List<string> { creator },
+            invited,
+            creator,
+            customName,
+            false,
+            this._client,
+            true,
+            null
+            );
+    }
+
+    // Request to join party
+    public void JoinParty(string inviterId)
+    {
+        object[] partyJoinRequest = new object[] { _client.UserName, inviterId, UserStatusCode.PartyJoinRequest };
+        _client.chatClient.SendPrivateMessage(inviterId, partyJoinRequest);
+    }
+
+    public void OnInviteToParty(string playerId)
+    {
+        if (_partyInstance == null)
+        {
+            Debug.Log(string.Format("{0}No Party associated with this player. We need to create one, then invite players.", (string)PhotonNetwork.player.CustomProperties["UniqueId"]));
+
+            CreateParty(
+                (string)PhotonNetwork.player.CustomProperties["UniqueId"],
+                new List<string> { playerId },
+                "TestingParty"
+                );
+        }
+        else
+        {
+            Debug.Log("Inviting this player to the party");
+
+            _partyInstance.Invite(playerId, this._client);
+        }
+    }
+
+    // Handle response after requesting to join party
+    public void OnJoinedParty(string channelName, Status partyStatus)
+    {
+        Debug.Log("OnJoinedParty()");
+        if (gameObject.GetComponent<Party>() == null)
+        {
+            gameObject.AddComponent<Party>();
+            _partyInstance = GetComponent<Party>();
+            _partyInstance.InitParty(
+                partyStatus.Joined,
+                partyStatus.Invited,
+                partyStatus.LeaderId,
+                partyStatus.Target,
+                partyStatus.InviteOnly,
+                GetComponent<NetworkedClient>(),
+                false,
+                partyStatus.Room
+                );
+        }
+        else
+        {
+            Debug.LogError("There is already a Party instance attached to this gameobject");
+        }
+
+        object[] partyJoinSuccess = new object[] { (string)PhotonNetwork.player.CustomProperties["UniqueId"], channelName, UserStatusCode.PartyJoinSuccess };
+
+        this._client.Subscribe(channelName);
+        this._client.Channels.Add(channelName);
+
+        this._client.chatClient.PublishMessage(channelName, partyJoinSuccess);
+    }
+
+    public bool SaveFriendsList(string fileName)
+    {
+        if (_client.FriendsStatus == null || _client.FriendsStatus.Count == 0)
             return false;
+
+        foreach (Friend friend in _client.FriendsStatus)
+            friend.playerStatus = 0;
 
         // Path.Combine combines strings into a file path
         // Application.StreamingAssets points to Assets/StreamingAssets in the Editor, and the StreamingAssets folder in a build
-        DataUtilities.SaveData(photonFriendsList, fileName);
+        DataUtilities.SaveData(_client.FriendsStatus, fileName);
+        Debug.Log(string.Format("Successfully saved friends to {0}.bin", (string)PhotonNetwork.player.CustomProperties["UniqueId"]));
 
         return true;
     }
 
-    private void LoadFriendsList(string fileName)
+    public void LoadFriendsList(string fileName)
     {
-        photonFriendsList = (List<Friend>)DataUtilities.LoadData(fileName);
-    }
-
-    private void InitFriendsStatus()
-    {
-        if (photonFriendsList != null && photonFriendsList.Count != 0)
-        {
-            string[] friends = new string[photonFriendsList.Count];
-            List<string> ids = new List<string>();
-
-            foreach (Friend friend in photonFriendsList)
-            {
-                ids.Add(friend.playerId);
-            }
-
-            ids.CopyTo(friends);
-
-            PhotonNetwork.FindFriends(friends);
-        }
-    }
-
-    private FriendInfo GetFriendStatus(string id)
-    {
-        foreach (FriendInfo info in currentFriendsStatus)
-        {
-            if (info.UserId == id)
-                return info;
-        }
-
-        return null;
-    }
-
-    public Friend GetIdentification() {
-        return new Friend(photonNetworkId, photonNetworkName);
+        if (_client.FriendsStatus == null)
+            _client.FriendsStatus = (List<Friend>)DataUtilities.LoadData(fileName);
     }
 
     public string GetPlayerName(string id)
     {
         if (hasJoinedRoom == true)
         {
-            foreach (PhotonPlayer player in PhotonNetwork.playerList)
+            List<string> ignoredViews = new List<string> { "Head", "Body", "Inventory" };
+            foreach (PhotonView player in GameObject.Find("Player").transform.GetComponentsInChildren<PhotonView>())
             {
-                if (player.UserId == id)
-                    return player.NickName;
+                string transformName = player.transform.name;
+                if (!ignoredViews.Contains(transformName))
+                {
+                    string uniqueId = (string)player.transform.name;
+                    Debug.Log(id + "\n" + uniqueId + "\n" + (id == uniqueId));
+                    if (uniqueId == id)
+                    {
+                        return player.owner.NickName;
+                    }
+                }
             }
         }
-
         return null;
     }
 
-    private bool IsSuitableRoom(string name)
+    private void IsSuitableRoom(string name)
     {
-        foreach (RoomInfo info in currentRoomsStatus)
-        {
-            if (info.Name == name)
-            {
-                // TODO :: Thorough check for room is instance
-                if (info.IsOpen && info.MaxPlayers > info.PlayerCount && name.Contains("Instance") == isJoiningParty)
-                    return true;
-
-                return false;
-            }
-        }
-
-        return false;
+        // Handled by chat client
     }
 
-    void InitIdentification()
+    private void LogFriends()
     {
-        photonNetworkId = PlayerPrefs.GetString("PlayerId", "none");
-        photonNetworkName = PlayerPrefs.GetString("PlayerName", "none");
-
-        if (photonNetworkId == "none")
+        if (_client.FriendsStatus != null)
         {
-            photonNetworkId = DataUtilities.GetUniqueId(); // Unique ID class
-            PlayerPrefs.SetString("PlayerId", photonNetworkId);
-        }
+            string friendList = null;
 
-        if (PhotonNetwork.player.UserId != photonNetworkId)
-            PhotonNetwork.player.UserId = photonNetworkId;
-
-        if (photonNetworkName == "none")
-        {
-            Debug.Log("No player name set. Defaulting to uniqueId");
-            photonNetworkName = photonNetworkId;
-        }
-        else
-        {
-            PhotonNetwork.playerName = photonNetworkName;
+            foreach (Friend friend in _client.FriendsStatus)
+            {
+                friendList = friendList + friend.playerName + "\t" + friend.playerId + "\n";
+            }
         }
     }
 }
