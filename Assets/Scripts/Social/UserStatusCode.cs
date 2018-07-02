@@ -30,4 +30,10 @@ public static class UserStatusCode
     public const int PartyJoinResponse = 11;
     /// <summary>(6) Used when successfully joined a party.</summary>
     public const int PartyJoinSuccess = 12;
+    /// <summary>(6) Used when leaving a party.</summary>
+    public const int PartyLeaveResponse = 13;
+    /// <summary>(6) Used when kicking a player from a party.</summary>
+    public const int PartyKickResponse = 14;
+    /// <summary>(6) Used when updating the party leader id.</summary>
+    public const int PartyLeaderUpdateResponse = 15;
 }

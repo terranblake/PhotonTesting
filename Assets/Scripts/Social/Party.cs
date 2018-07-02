@@ -1,11 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Party : MonoBehaviour
 {
-    //public static Party Instance;
-
     public string _name = "";
     public string _leaderId = "";
     public string _room = "";
@@ -42,14 +41,15 @@ public class Party : MonoBehaviour
         {
             this._joined = joined;
             this._invited = invited;
-            this._room = room;
         }
 
+        this._room = room;
         this._leaderId = leaderId;
         this._isInviteOnly = inviteOnly;
         this._client = client;
-        
+
         FindObjectOfType<InputHandler>().OnUpdatePartyList();
+        FindObjectOfType<InputHandler>().OnUpdateInvitesList();
     }
 
     public void Invite(string inviteeId, NetworkedClient client)
@@ -76,8 +76,84 @@ public class Party : MonoBehaviour
         client.chatClient.PublishMessage(_name, partyInvitation);
     }
 
-    private string toJoined;
-    private string toInvited;
+    public void KickFromParty(string playerId)
+    {
+        Debug.Log(string.Format("KickFromParty()\t{0}", playerId));
+        string localId = (string)PhotonNetwork.player.CustomProperties["UniqueId"];
+
+        if (localId == _leaderId && localId != playerId)
+            Debug.Log(string.Format("Kicking {0} from the party.", playerId));
+        else
+        {
+            Debug.Log(string.Format("Unable to kick {0} from the party.", playerId));
+            return;
+        }
+
+        object[] onKickFromPartyUpdate = new object[] { playerId, _name, UserStatusCode.PartyKickResponse };
+        this._client.chatClient.PublishMessage(_name, onKickFromPartyUpdate);
+    }
+
+    public void LeaveParty()
+    {
+        Debug.Log("LeaveParty()");
+        string localId = (string)PhotonNetwork.player.CustomProperties["UniqueId"];
+
+        object[] onLeaveUpdate = new object[] { localId, _name, UserStatusCode.PartyLeaveResponse };
+        _client.chatClient.PublishMessage(_name, onLeaveUpdate);
+        _client.Channels.Remove(_name);
+
+        FindObjectOfType<NetworkedSocial>()._partyInstance = null;
+        FindObjectOfType<InputHandler>().OnUpdatePartyList();
+
+        Destroy(this);
+    }
+
+    public void OnMakeLeader(string playerId)
+    {
+        string localId = (string)PhotonNetwork.player.CustomProperties["UniqueId"];
+
+        object[] onMakeLeaderUpdate = new object[] { playerId, _name, UserStatusCode.PartyLeaderUpdateResponse };
+        this._client.chatClient.PublishMessage(_name, onMakeLeaderUpdate);
+    }
+
+    public void MakeLeader(string playerId)
+    {
+        Debug.Log("MakeLeader()\t" + playerId);
+        this._leaderId = playerId;
+    }
+
+    public void OnRemoveFromParty(string playerId)
+    {
+        Debug.Log(string.Format("OnRemoveFromParty()\t{0}", playerId));
+        string localId = (string)PhotonNetwork.player.CustomProperties["UniqueId"];
+
+        if (localId == playerId)
+        {
+            _client.Channels.Remove(_name);
+            Destroy(this);
+        }
+        _joined.Remove(playerId);
+
+        if (_leaderId == playerId)
+        {
+            _leaderId = _joined[0];
+
+            object[] leaderIdUpdate = new object[] { _leaderId, _name, UserStatusCode.PartyLeaderUpdateResponse };
+            this._client.chatClient.PublishMessage(_name, leaderIdUpdate);
+        }
+    }
+
+    public void OnJoinPartyLobby()
+    {
+        if (FindObjectOfType<NetworkedManager>().Room != _room)
+        {
+            Debug.Log(string.Format("OnJoinPartyLobby()\t{0}", _room));
+            PhotonNetwork.JoinRoom(_room);
+        }
+        else
+            Debug.LogWarning("You are already in the same room as your party.");
+    }
+
     public void OnJoin(string inviteeId)
     {
         NetworkedClient client = GetComponent<NetworkedClient>();
@@ -98,31 +174,34 @@ public class Party : MonoBehaviour
             return;
         }
 
-        toJoined = "";
+        string toJoined = "";
         foreach (string id in this._joined)
         {
-            toJoined += id + ".";
+            toJoined += id + "%";
         }
+        toJoined = toJoined.Remove(toJoined.Length - 1);
 
-        toInvited = "";
+        string toInvited = "";
         foreach (string id in this._invited)
         {
-            toJoined += id + ".";
+            toInvited += id + "%";
         }
+        toInvited = toInvited.Remove(toInvited.Length - 1);
 
         Debug.Log("PARTY INVITE & JOIN UPDATE\n" + toJoined + "\n" + toInvited);
 
-        object[] partyJoinResponse = new object[] { this._name, UserStatusCode.PartyJoinResponse, this._name, this.toInvited, this.toJoined, this._leaderId, this._room, this._isInviteOnly };
-        this._client.chatClient.SendPrivateMessage(inviteeId, partyJoinResponse);
+        object[] onJoinUpdate = new object[] { this._name, UserStatusCode.PartyJoinResponse, this._name, toInvited, toJoined, this._leaderId, this._room, this._isInviteOnly };
+        client.chatClient.SendPrivateMessage(inviteeId, onJoinUpdate);
     }
 
-    public void OnJoinSuccess(string partyMemeber)
+    public void OnJoinSuccess(string partyMember)
     {
         Debug.Log("OnJoinSuccess()");
-        if (_invited.Contains(partyMemeber))
+        if (_invited.Contains(partyMember))
         {
-            _invited.Remove(partyMemeber);
-            _joined.Add(partyMemeber);
+            Debug.Log(partyMember + " has joined the party");
+            _invited.Remove(partyMember);
+            _joined.Add(partyMember);
         }
     }
 }

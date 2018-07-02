@@ -364,7 +364,14 @@ public class NetworkedClient : MonoBehaviour, IChatClientListener
                 {
                     socialActions._partyInstance._invited.Add(update.Target);
                     this.Invites.Add(update);
-                    FindObjectOfType<InputHandler>().OnUpdateInvitesList();
+                }
+                else if (update.Info == "PartyKickResponse" || update.Info == "PartyLeaveResponse")
+                {
+                    FindObjectOfType<Party>().OnRemoveFromParty(update.Owner);
+                }
+                else if (update.Info == "PartyLeaderUpdateResponse")
+                {
+                    FindObjectOfType<Party>().MakeLeader(update.Owner);
                 }
                 else if (update.Info == "PartyJoinSuccess")
                 {
@@ -379,10 +386,12 @@ public class NetworkedClient : MonoBehaviour, IChatClientListener
                             break;
                         }
                     }
+                    FindObjectOfType<Party>().OnJoinSuccess(update.Owner);
 
-                    GetComponent<Party>().OnJoinSuccess(update.Owner);
-                    GameObject.Find("Player").GetComponent<InputHandler>().OnUpdateInvitesList();
                 }
+                FindObjectOfType<InputHandler>().OnUpdateInvitesList();
+                FindObjectOfType<InputHandler>().OnUpdatePartyList();
+
             }
         }
     }

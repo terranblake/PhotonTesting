@@ -38,6 +38,9 @@ public class InputHandler : MonoBehaviour
     public GameObject partierPrefab;
     public List<GameObject> partiers = new List<GameObject>();
 
+    public Button joinPartyLobby;
+    public Button leavyParty;
+
 
     public void InitInput()
     {
@@ -45,13 +48,66 @@ public class InputHandler : MonoBehaviour
         room.text = FindObjectOfType<NetworkedManager>().Room;
     }
 
-    public void OnJoinParty(string player)
+    public void OnPartyKick(string memberId)
+    {
+        if (FindObjectOfType<Party>() != null)
+        {
+            Debug.Log("KickFromParty()");
+            FindObjectOfType<Party>().KickFromParty(memberId);
+        }
+        else
+        {
+            Debug.Log("No party associated with this player");
+        }
+    }
+
+    public void OnPartyLeave()
+    {
+        if (FindObjectOfType<Party>() != null)
+        {
+            Debug.Log("LeaveParty()");
+            FindObjectOfType<Party>().LeaveParty();
+        }
+        else
+        {
+            Debug.Log("No party associated with this player");
+            OnUpdatePartyList();
+        }
+    }
+
+    public void OnPartyJoinLobby()
+    {
+        if (FindObjectOfType<Party>() != null)
+        {
+            Debug.Log("OnPartyJoinLobby()");
+            FindObjectOfType<Party>().OnJoinPartyLobby();
+        }
+        else
+        {
+            Debug.Log("No party associated with this player");
+        }
+    }
+
+    public void OnMakeLeader(string memberId)
+    {
+        if (FindObjectOfType<Party>() != null)
+        {
+            Debug.Log("OnMakeLeader()");
+            FindObjectOfType<Party>().OnMakeLeader(memberId);
+        }
+        else
+        {
+            Debug.Log("No party associated with this player");
+        }
+    }
+
+    public void OnPartyJoin(string player)
     {
         socialActions.JoinParty(player);
         Debug.Log(string.Format("JoinParty()\nJoining {0}'s Party...", player));
     }
 
-    public void InviteToParty(string player)
+    public void OnPartyInvite(string player)
     {
         socialActions.OnInviteToParty(player);
         Debug.Log(string.Format("InviteToParty()\nInviting {0} to Party...", player));
@@ -111,17 +167,32 @@ public class InputHandler : MonoBehaviour
         foreach (GameObject obj in partiers)
             Destroy(obj);
 
+        string localId = (string)PhotonNetwork.player.CustomProperties["UniqueId"];
+
         Party currentParty = socialActions._partyInstance;
 
         Text partyName = partyInfo.transform.Find("Name").GetComponent<Text>();
         Text partyLeader = partyInfo.transform.Find("LeaderId").GetComponent<Text>();
         Text partyRoom = partyInfo.transform.Find("Room").GetComponent<Text>();
 
-        partyName.text = currentParty._name.Substring(0, 50);
-        partyLeader.text = currentParty._leaderId.Substring(0, 50);
-        partyRoom.text = currentParty._room;
+        Button joinPartyLobby = partyInfo.transform.Find("JoinPartyLobby").GetComponent<Button>();
+        Button leaveParty = partyInfo.transform.Find("LeaveParty").GetComponent<Button>();
 
-        List<string> partyMembers = socialActions._partyInstance._joined;
+        if (currentParty._room != PhotonNetwork.room.Name)
+            joinPartyLobby.interactable = true;
+        else
+            joinPartyLobby.interactable = false;
+
+        bool isInParty = socialActions._partyInstance != null;
+
+        leaveParty.interactable = isInParty;
+        joinPartyLobby.interactable = isInParty;
+
+        partyName.text = isInParty ? currentParty._name.Substring(0, 50): "";
+        partyLeader.text = isInParty ? currentParty._leaderId.Substring(0, 50) : "";
+        partyRoom.text = isInParty ? currentParty._room : "";
+
+        List<string> partyMembers = isInParty ? socialActions._partyInstance._joined : null;
 
         if (partyMembers == null || partyMembers.Count == 0)
         {
@@ -142,11 +213,24 @@ public class InputHandler : MonoBehaviour
 
             GameObject name = MemberItem.transform.Find("Name").gameObject;
 
-            // This is the member's ID. we need to pass the members name as well
-            name.GetComponent<Text>().text = member.Substring(0, 15);
+            Button kickButton = MemberItem.transform.Find("Kick").gameObject.GetComponent<Button>();
+            if (currentParty._leaderId == localId && member != localId)
+                kickButton.onClick.AddListener(delegate () { OnPartyKick(member); });
+            else
+                kickButton.interactable = false;
 
-            // We also need to pass the member's current room
+            Button makeLeaderButton = MemberItem.transform.Find("MakeLeader").gameObject.GetComponent<Button>();
+            if (currentParty._leaderId == localId && member != localId)
+                makeLeaderButton.onClick.AddListener(delegate () { OnMakeLeader(member); });
+            else
+                makeLeaderButton.interactable = false;
 
+            name.GetComponent<Text>().text = member.Substring(40);
+
+            // Member names
+            // Members current instance
+
+            partiers.Add(MemberItem);
             x++;
         }
     }
@@ -188,7 +272,7 @@ public class InputHandler : MonoBehaviour
                 Debug.Log("OnUpdateInvitesList()\nFrom:\t" + invite.Owner);
 
                 canJoin = InviteItem.transform.Find("Join").GetComponent<Button>();
-                canJoin.onClick.AddListener(delegate () { OnJoinParty(invite.Owner); });
+                canJoin.onClick.AddListener(delegate () { OnPartyJoin(invite.Owner); });
             }
 
             string friendName = null;
@@ -206,7 +290,6 @@ public class InputHandler : MonoBehaviour
                     friendName = friend.playerName;
                 }
             }
-
             InviteItem.transform.Find("Name").gameObject.GetComponent<Text>().text = friendName;
 
             invites.Add(InviteItem);
@@ -255,12 +338,28 @@ public class InputHandler : MonoBehaviour
             {
                 friendsRoom.text = friend.roomId;
                 friendsStatus.text = onlineStatus;
+                friendsName.color = new Color(1f, 1f, 1f);
 
                 if (friend.isInParty && friend.isInviteOnly)
                 {
                     friendsPartyStatus.text = "In Party";
                     canJoin.interactable = false;
-                    canInvite.interactable = true;
+
+                    Party party = FindObjectOfType<Party>();
+                    bool isInvitable = false;
+                    if (party != null)
+                    {
+                        foreach (string member in FindObjectOfType<Party>()._joined)
+                        {
+                            if (member != friend.playerId)
+                            {
+                                isInvitable = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    canInvite.interactable = isInvitable;
                 }
                 else
                 {
@@ -268,14 +367,15 @@ public class InputHandler : MonoBehaviour
                     canJoin.interactable = true;
                     canInvite.interactable = true;
                 }
-                canJoin.onClick.AddListener(delegate () { OnJoinParty(friend.playerId); });
-                canInvite.onClick.AddListener(delegate () { InviteToParty(friend.playerId); });
+                canJoin.onClick.AddListener(delegate () { OnPartyJoin(friend.playerId); });
+                canInvite.onClick.AddListener(delegate () { OnPartyInvite(friend.playerId); });
             }
             else
             {
                 friendsRoom.text = "-";
                 friendsStatus.text = "Offline";
                 friendsPartyStatus.text = "-";
+                friendsName.color = new Color(0.5f, 0.5f, 0.5f);
 
                 canJoin.interactable = false;
                 canInvite.interactable = false;

@@ -74,7 +74,7 @@ public class Status
     public Status(object parameters)
     {
         object[] expanded = ((IEnumerable)parameters).Cast<object>()
-                                   .Select(x => x == null ? x : x.ToString())
+                                   .Select(x => x == null ? x : x)
                                    .ToArray();
 
         Debug.Log("Status()\n" + expanded.Length + " Parameter Update");
@@ -83,27 +83,21 @@ public class Status
         {
             Debug.Log("Status()\n8 Parameter Party Update");
             this._owner = (string)expanded[0];
-            this._code = int.Parse((string)expanded[1]);
+            this._code = (int)expanded[1];
             this._state = this.ConvertStatusCode(this._code);
             this._target = (string)expanded[2];
 
-            string toInvited = (string)(expanded[3]);
-            string[] invited = toInvited.Split('.');
+            string toInvited = (string)expanded[3];
+            string[] invited = toInvited.Split('%');
 
-            foreach (string item in invited)
-                Debug.Log("PartyUpdate Status()\t" + item);
-
-            string toJoined = (string)(expanded[4]);
-            string[] joined = toInvited.Split('.');
-
-            foreach (string item in joined)
-                Debug.Log("PartyUpdate Status()\t" + item);
+            string toJoined = (string)expanded[4];
+            string[] joined = toJoined.Split('%');
 
             this._invited = invited.ToList();
             this._joined = joined.ToList();
             this._leaderId = (string)expanded[5];
             this._room = (string)expanded[6];
-            this._inviteOnly = (string)expanded[7] == "False" ? false : true;
+            this._inviteOnly = (bool)expanded[7];
 
             this._actionable = false;
         }
@@ -112,12 +106,12 @@ public class Status
             Debug.Log("Status()\n6 Parameter Status Update");
             this._owner = (string)expanded[0];
             this._target = (string)expanded[1];
-            this._code = int.Parse((string)expanded[2]);
+            this._code = (int)expanded[2];
             this._state = this.ConvertStatusCode(this._code);
 
             this._room = (string)expanded[3];
-            this._inParty = (string)expanded[4] == "False" ? false : true;
-            this._inviteOnly = (string)expanded[5] == "False" ? false : true;
+            this._inParty = (bool)expanded[4];
+            this._inviteOnly = (bool)expanded[5];
 
             this._actionable = false;
 
@@ -128,11 +122,11 @@ public class Status
             Debug.Log("Status()\n5 Parameter Status Update");
             this._owner = (string)expanded[0];
             this._target = (string)expanded[1];
-            this._code = int.Parse((string)expanded[2]);
-            this._state = this.ConvertStatusCode(int.Parse((string)expanded[2]));
+            this._code = (int)expanded[2];
+            this._state = this.ConvertStatusCode(this._code);
 
             this._room = (string)expanded[3];
-            this._inParty = (string)expanded[4] == "False" ? false : true;
+            this._inParty = (bool)expanded[4];
 
             this._actionable = false;
 
@@ -144,8 +138,8 @@ public class Status
             this._owner = (string)expanded[0];
             this._target = (string)expanded[1];
 
-            this._code = int.Parse((string)expanded[2]);
-            this._state = this.ConvertStatusCode(int.Parse((string)expanded[2]));
+            this._code = (int)expanded[2];
+            this._state = this.ConvertStatusCode(this._code);
 
             this._actionable = (this._state == "FriendRequest" || this._state == "PartyInvitationRequest") ? true : false;
         }
@@ -270,6 +264,15 @@ public class Status
                 break;
             case 12:
                 _state = "PartyJoinSuccess";
+                break;
+            case 13:
+                _state = "PartyLeaveResponse";
+                break;
+            case 14:
+                _state = "PartyKickResponse";
+                break;
+            case 15:
+                _state = "PartyLeaderUpdateResponse";
                 break;
             default:
                 _state = "Offline";

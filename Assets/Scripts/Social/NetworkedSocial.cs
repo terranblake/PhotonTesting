@@ -73,7 +73,7 @@ public class NetworkedSocial : MonoBehaviour
         // Pass to chat client to receive updates for the newly added friend
         _client.chatClient.AddFriends(new string[] { id });
         _client.chatClient.PublishMessage(PhotonNetwork.room.Name, string.Format("{0} has added a new friend!", photonNetworkId));
-
+        FindObjectOfType<InputHandler>().OnUpdateFriendsList();
         return true;
     }
 
@@ -101,6 +101,7 @@ public class NetworkedSocial : MonoBehaviour
 
         // Pass to chat client to stop recieving updates for this player
         _client.chatClient.RemoveFriends(new string[] { id });
+        FindObjectOfType<InputHandler>().OnUpdateFriendsList();
         return true;
     }
 
@@ -116,7 +117,7 @@ public class NetworkedSocial : MonoBehaviour
             false,
             this._client,
             true,
-            null
+            FindObjectOfType<NetworkedManager>().Room
             );
     }
 
@@ -150,7 +151,7 @@ public class NetworkedSocial : MonoBehaviour
     // Handle response after requesting to join party
     public void OnJoinedParty(string channelName, Status partyStatus)
     {
-        Debug.Log("OnJoinedParty()");
+        Debug.Log(string.Format("OnJoinedParty()\n{0}\n{1}", partyStatus.Invited[0], partyStatus.Invited[0]));
         if (gameObject.GetComponent<Party>() == null)
         {
             gameObject.AddComponent<Party>();
@@ -168,7 +169,9 @@ public class NetworkedSocial : MonoBehaviour
         }
         else
         {
-            Debug.LogError("There is already a Party instance attached to this gameobject");
+            Debug.LogError("Leaving current party before joining another.");
+            // FindObjectOfType<Party>().LeaveParty();
+            OnJoinedParty(channelName, partyStatus);
         }
 
         object[] partyJoinSuccess = new object[] { (string)PhotonNetwork.player.CustomProperties["UniqueId"], channelName, UserStatusCode.PartyJoinSuccess };
