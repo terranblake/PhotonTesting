@@ -363,6 +363,8 @@ public class NetworkedClient : MonoBehaviour, IChatClientListener
                 if (update.Info == "PartyInvitationRequest")
                 {
                     socialActions._partyInstance._invited.Add(update.Target);
+                    this.Invites.Add(update);
+                    FindObjectOfType<InputHandler>().OnUpdateInvitesList();
                 }
                 else if (update.Info == "PartyJoinSuccess")
                 {

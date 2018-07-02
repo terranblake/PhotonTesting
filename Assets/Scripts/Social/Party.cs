@@ -7,12 +7,12 @@ public class Party : MonoBehaviour
     //public static Party Instance;
 
     public string _name = "";
-    private string _leaderId = "";
+    public string _leaderId = "";
+    public string _room = "";
     public bool _isInviteOnly = false;
     public List<string> _invited = new List<string>(); // Red
     public List<string> _joined = new List<string>(); // Green
     private NetworkedClient _client = null;
-    private string _room = "";
 
     void Awake()
     {
@@ -48,6 +48,8 @@ public class Party : MonoBehaviour
         this._leaderId = leaderId;
         this._isInviteOnly = inviteOnly;
         this._client = client;
+        
+        FindObjectOfType<InputHandler>().OnUpdatePartyList();
     }
 
     public void Invite(string inviteeId, NetworkedClient client)

@@ -33,6 +33,11 @@ public class InputHandler : MonoBehaviour
     public GameObject inviterPrefab;
     public List<GameObject> invites = new List<GameObject>();
 
+    public GameObject partyInfo;
+    public GameObject partiersList;
+    public GameObject partierPrefab;
+    public List<GameObject> partiers = new List<GameObject>();
+
 
     public void InitInput()
     {
@@ -97,6 +102,53 @@ public class InputHandler : MonoBehaviour
 
         if (result)
             name.text = newName;
+    }
+
+    public void OnUpdatePartyList()
+    {
+        Debug.Log("OnUpdatePartyList()");
+
+        foreach (GameObject obj in partiers)
+            Destroy(obj);
+
+        Party currentParty = socialActions._partyInstance;
+
+        Text partyName = partyInfo.transform.Find("Name").GetComponent<Text>();
+        Text partyLeader = partyInfo.transform.Find("LeaderId").GetComponent<Text>();
+        Text partyRoom = partyInfo.transform.Find("Room").GetComponent<Text>();
+
+        partyName.text = currentParty._name.Substring(0, 50);
+        partyLeader.text = currentParty._leaderId.Substring(0, 50);
+        partyRoom.text = currentParty._room;
+
+        List<string> partyMembers = socialActions._partyInstance._joined;
+
+        if (partyMembers == null || partyMembers.Count == 0)
+        {
+            Debug.Log("Party is null or no members have joined yet");
+            return;
+        }
+
+        int x = 0;
+        foreach (string member in partyMembers)
+        {
+            GameObject MemberItem;
+
+            MemberItem = (GameObject)GameObject.Instantiate(partierPrefab, Vector3.zero, Quaternion.identity);
+            MemberItem.gameObject.SetActive(true);
+
+            MemberItem.transform.SetParent(partiersList.transform, false);
+            MemberItem.GetComponent<RectTransform>().anchoredPosition3D = new Vector3(-161f, -129f - (30f * x), 0);
+
+            GameObject name = MemberItem.transform.Find("Name").gameObject;
+
+            // This is the member's ID. we need to pass the members name as well
+            name.GetComponent<Text>().text = member.Substring(0, 15);
+
+            // We also need to pass the member's current room
+
+            x++;
+        }
     }
 
     public void OnUpdateInvitesList()
