@@ -16,6 +16,7 @@ public class Party : MonoBehaviour
     void Awake()
     {
         //Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     public void InitParty(List<string> joined, List<string> invited, string leaderId, string customName, bool inviteOnly, NetworkedClient client, bool doInvite, string room)
@@ -101,8 +102,9 @@ public class Party : MonoBehaviour
         object[] onLeaveUpdate = new object[] { localId, _name, UserStatusCode.PartyLeaveResponse };
         _client.chatClient.PublishMessage(_name, onLeaveUpdate);
         _client.Channels.Remove(_name);
-
-        FindObjectOfType<NetworkedSocial>()._partyInstance = null;
+        
+        GetComponent<NetworkedSocial>()._partyInstance = null;
+        Debug.Log(GetComponent<NetworkedSocial>()._partyInstance);
         FindObjectOfType<InputHandler>().OnUpdatePartyList();
 
         Destroy(this);
@@ -136,6 +138,8 @@ public class Party : MonoBehaviour
 
         if (_leaderId == playerId)
         {
+            Debug.Log("Party leader has left the party!");
+            Debug.Log(string.Format("Setting party leader to {0}", _joined[0]));
             _leaderId = _joined[0];
 
             object[] leaderIdUpdate = new object[] { _leaderId, _name, UserStatusCode.PartyLeaderUpdateResponse };
@@ -147,8 +151,9 @@ public class Party : MonoBehaviour
     {
         if (FindObjectOfType<NetworkedManager>().Room != _room)
         {
+            FindObjectOfType<NetworkedManager>().Room = _room;
             Debug.Log(string.Format("OnJoinPartyLobby()\t{0}", _room));
-            PhotonNetwork.JoinRoom(_room);
+            PhotonNetwork.LeaveRoom();
         }
         else
             Debug.LogWarning("You are already in the same room as your party.");

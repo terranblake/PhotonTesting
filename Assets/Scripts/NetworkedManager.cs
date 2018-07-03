@@ -45,7 +45,7 @@ public class NetworkedManager : Photon.PunBehaviour
     {
         Debug.Log("OnJoinedLobby()");
         InitIdentification();
-
+        
         RoomOptions roomOptions = new RoomOptions() { };
         PhotonNetwork.JoinOrCreateRoom(Room, roomOptions, TypedLobby.Default);
     }

@@ -50,10 +50,10 @@ public class InputHandler : MonoBehaviour
 
     public void OnPartyKick(string memberId)
     {
-        if (FindObjectOfType<Party>() != null)
+        if (socialActions._partyInstance != null)
         {
             Debug.Log("KickFromParty()");
-            FindObjectOfType<Party>().KickFromParty(memberId);
+            socialActions._partyInstance.KickFromParty(memberId);
         }
         else
         {
@@ -63,10 +63,10 @@ public class InputHandler : MonoBehaviour
 
     public void OnPartyLeave()
     {
-        if (FindObjectOfType<Party>() != null)
+        if (socialActions._partyInstance != null)
         {
             Debug.Log("LeaveParty()");
-            FindObjectOfType<Party>().LeaveParty();
+            socialActions._partyInstance.LeaveParty();
         }
         else
         {
@@ -80,7 +80,7 @@ public class InputHandler : MonoBehaviour
         if (FindObjectOfType<Party>() != null)
         {
             Debug.Log("OnPartyJoinLobby()");
-            FindObjectOfType<Party>().OnJoinPartyLobby();
+            socialActions.GetComponent<Party>().OnJoinPartyLobby();
         }
         else
         {
@@ -93,7 +93,7 @@ public class InputHandler : MonoBehaviour
         if (FindObjectOfType<Party>() != null)
         {
             Debug.Log("OnMakeLeader()");
-            FindObjectOfType<Party>().OnMakeLeader(memberId);
+            socialActions.gameObject.GetComponent<Party>().OnMakeLeader(memberId);
         }
         else
         {
@@ -164,75 +164,11 @@ public class InputHandler : MonoBehaviour
     {
         Debug.Log("OnUpdatePartyList()");
 
-        foreach (GameObject obj in partiers)
-            Destroy(obj);
-
         string localId = (string)PhotonNetwork.player.CustomProperties["UniqueId"];
-
         Party currentParty = socialActions._partyInstance;
 
-        Text partyName = partyInfo.transform.Find("Name").GetComponent<Text>();
-        Text partyLeader = partyInfo.transform.Find("LeaderId").GetComponent<Text>();
-        Text partyRoom = partyInfo.transform.Find("Room").GetComponent<Text>();
-
-        Button joinPartyLobby = partyInfo.transform.Find("JoinPartyLobby").GetComponent<Button>();
-        Button leaveParty = partyInfo.transform.Find("LeaveParty").GetComponent<Button>();
-
-        if (currentParty._room != PhotonNetwork.room.Name)
-            joinPartyLobby.interactable = true;
-        else
-            joinPartyLobby.interactable = false;
-
-        bool isInParty = socialActions._partyInstance != null;
-
-        leaveParty.interactable = isInParty;
-        joinPartyLobby.interactable = isInParty;
-
-        partyName.text = isInParty ? currentParty._name.Substring(0, 50): "";
-        partyLeader.text = isInParty ? currentParty._leaderId.Substring(0, 50) : "";
-        partyRoom.text = isInParty ? currentParty._room : "";
-
-        List<string> partyMembers = isInParty ? socialActions._partyInstance._joined : null;
-
-        if (partyMembers == null || partyMembers.Count == 0)
-        {
-            Debug.Log("Party is null or no members have joined yet");
-            return;
-        }
-
-        int x = 0;
-        foreach (string member in partyMembers)
-        {
-            GameObject MemberItem;
-
-            MemberItem = (GameObject)GameObject.Instantiate(partierPrefab, Vector3.zero, Quaternion.identity);
-            MemberItem.gameObject.SetActive(true);
-
-            MemberItem.transform.SetParent(partiersList.transform, false);
-            MemberItem.GetComponent<RectTransform>().anchoredPosition3D = new Vector3(-161f, -129f - (30f * x), 0);
-
-            GameObject name = MemberItem.transform.Find("Name").gameObject;
-
-            Button kickButton = MemberItem.transform.Find("Kick").gameObject.GetComponent<Button>();
-            if (currentParty._leaderId == localId && member != localId)
-                kickButton.onClick.AddListener(delegate () { OnPartyKick(member); });
-            else
-                kickButton.interactable = false;
-
-            Button makeLeaderButton = MemberItem.transform.Find("MakeLeader").gameObject.GetComponent<Button>();
-            if (currentParty._leaderId == localId && member != localId)
-                makeLeaderButton.onClick.AddListener(delegate () { OnMakeLeader(member); });
-            else
-                makeLeaderButton.interactable = false;
-
-            name.GetComponent<Text>().text = member.Substring(40);
-
-            // Member names
-            // Members current instance
-
-            partiers.Add(MemberItem);
-            x++;
-        }
+        UpdatePartyInfo(currentParty, currentParty != null);
+        UpdatePartiersList(currentParty, localId);
     }
 
     public void OnUpdateInvitesList()
@@ -367,8 +303,8 @@ public class InputHandler : MonoBehaviour
                     canJoin.interactable = true;
                     canInvite.interactable = true;
                 }
-                canJoin.onClick.AddListener(delegate () { OnPartyJoin(friend.playerId); });
                 canInvite.onClick.AddListener(delegate () { OnPartyInvite(friend.playerId); });
+                canJoin.onClick.AddListener(delegate () { OnPartyJoin(friend.playerId); });
             }
             else
             {
@@ -410,5 +346,85 @@ public class InputHandler : MonoBehaviour
                 room.text = PhotonNetwork.room.Name;
             }
         }
+    }
+
+    private void UpdatePartiersList(Party currentParty, string localId)
+    {
+        foreach (GameObject obj in partiers)
+            Destroy(obj);
+        partiers = new List<GameObject>();
+
+        if (currentParty == null || currentParty._joined.Count == 0)
+        {
+            Debug.Log("Party is null or no members have joined yet");
+            return;
+        }
+
+        int x = 0;
+        foreach (string member in currentParty._joined)
+        {
+            GameObject MemberItem;
+
+            MemberItem = (GameObject)GameObject.Instantiate(partierPrefab, Vector3.zero, Quaternion.identity);
+            MemberItem.gameObject.SetActive(true);
+
+            MemberItem.transform.SetParent(partiersList.transform, false);
+            MemberItem.GetComponent<RectTransform>().anchoredPosition3D = new Vector3(-161f, -129f - (30f * x), 0);
+
+            GameObject name = MemberItem.transform.Find("Name").gameObject;
+
+            Button kickButton = MemberItem.transform.Find("Kick").gameObject.GetComponent<Button>();
+            if (currentParty._leaderId == localId && member != localId)
+            {
+                kickButton.interactable = true;
+                kickButton.onClick.AddListener(delegate () { OnPartyKick(member); });
+            }
+            else
+                kickButton.interactable = false;
+
+            Button makeLeaderButton = MemberItem.transform.Find("MakeLeader").gameObject.GetComponent<Button>();
+            if (currentParty._leaderId == localId && member != localId)
+            {
+                makeLeaderButton.interactable = true;
+                makeLeaderButton.onClick.AddListener(delegate () { OnMakeLeader(member); });
+            }
+            else
+                makeLeaderButton.interactable = false;
+
+            name.GetComponent<Text>().text = member.Substring(40);
+
+            // Member names
+            // Members current instance
+
+            partiers.Add(MemberItem);
+            x++;
+        }
+    }
+
+    private void UpdatePartyInfo(Party currentParty, bool isInParty)
+    {
+        Text partyName = partyInfo.transform.Find("Name").GetComponent<Text>();
+        Text partyLeader = partyInfo.transform.Find("LeaderId").GetComponent<Text>();
+        Text partyRoom = partyInfo.transform.Find("Room").GetComponent<Text>();
+
+        Button joinPartyLobby = partyInfo.transform.Find("JoinPartyLobby").GetComponent<Button>();
+        Button leaveParty = partyInfo.transform.Find("LeaveParty").GetComponent<Button>();
+
+        if (currentParty != null && currentParty._room != PhotonNetwork.room.Name)
+            joinPartyLobby.interactable = true;
+        else
+            joinPartyLobby.interactable = false;
+
+        leaveParty.interactable = isInParty;
+        joinPartyLobby.interactable = isInParty;
+
+        partyName.text = isInParty ? currentParty._name.Substring(0, 50) : "";
+        partyLeader.text = isInParty ? currentParty._leaderId.Substring(0, 50) : "";
+        partyRoom.text = isInParty ? currentParty._room : "";
+
+        if (socialActions._partyInstance != null && socialActions._partyInstance._room == PhotonNetwork.room.Name)
+            joinPartyLobby.interactable = false;
+        else
+            joinPartyLobby.interactable = true;
     }
 }

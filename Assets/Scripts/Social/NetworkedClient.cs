@@ -89,9 +89,13 @@ public class NetworkedClient : MonoBehaviour, IChatClientListener
     {
         if (this.chatClient != null)
         {
-            socialActions.SaveFriendsList((string)PhotonNetwork.player.CustomProperties["UniqueId"]);
+            string localId = (string)PhotonNetwork.player.CustomProperties["UniqueId"];
+
+            socialActions.SaveFriendsList(localId);
             Debug.Log("OnApplicationQuit()\n" + this.UserName + " :: " + PhotonNetwork.room.Name + " :: " + socialActions);
-            //this.chatClient.SetOnlineStatus(ChatUserStatus.Offline, new object[] { this.UserName, "OnApplicationQuit()", 0, PhotonNetwork.room.Name, false, false });
+
+            socialActions._partyInstance.OnRemoveFromParty(localId);
+
             this.chatClient.Disconnect();
         }
     }
@@ -320,44 +324,18 @@ public class NetworkedClient : MonoBehaviour, IChatClientListener
 
     public void OnUnsubscribed(string[] channels)
     {
-        // foreach (string channelName in channels)
-        // {
-        //     if (this.channelToggles.ContainsKey(channelName))
-        //     {
-        //         Toggle t = this.channelToggles[channelName];
-        //         Destroy(t.gameObject);
-
-        //         this.channelToggles.Remove(channelName);
-
-        //         Debug.Log("Unsubscribed from channel '" + channelName + "'.");
-
-        //         // Showing another channel if the active channel is the one we unsubscribed from before
-        //         if (channelName == selectedChannelName && channelToggles.Count > 0)
-        //         {
-        //             IEnumerator<KeyValuePair<string, Toggle>> firstEntry = channelToggles.GetEnumerator();
-        //             firstEntry.MoveNext();
-
-        //             ShowChannel(firstEntry.Current.Key);
-
-        //             firstEntry.Current.Value.isOn = true;
-        //         }
-        //     }
-        //     else
-        //     {
-        //         Debug.Log("Can't unsubscribe from channel '" + channelName + "' because you are currently not subscribed to it.");
-        //     }
-        // }
     }
 
     public void OnGetMessages(string channelName, string[] senders, object[] messages)
     {
         if (Channels.Contains(channelName))
         {
-            for (int x = 0; x < senders.Length; x++)
+            Debug.Log(messages.Length);
+            for (int x = 0; x < messages.Length; x++)
             {
                 Status update = null;
-                if (messages[0] != null)
-                    update = new Status(messages[0]);
+                if (messages[x] != null)
+                    update = new Status(messages[x]);
                 Debug.Log(string.Format("OnGetMessages()\n{0} :: {1}\n{2}", channelName, senders[x], update.Printable));
 
                 if (update.Info == "PartyInvitationRequest")

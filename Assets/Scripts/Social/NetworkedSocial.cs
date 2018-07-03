@@ -31,8 +31,11 @@ public class NetworkedSocial : MonoBehaviour
 
         _client = GetComponent<NetworkedClient>();
 
-        Debug.Log("PhotonId:\t" + photonNetworkId);
-        Debug.Log("PlayerName:\t" + photonNetworkName);
+        Debug.Log(
+            "InitSocial()\n" +
+            "PhotonId:\t" + photonNetworkId + 
+            "\nPlayerName:\t" + photonNetworkName
+            );
     }
 
     public bool SetName(string name)
@@ -152,6 +155,7 @@ public class NetworkedSocial : MonoBehaviour
     public void OnJoinedParty(string channelName, Status partyStatus)
     {
         Debug.Log(string.Format("OnJoinedParty()\n{0}\n{1}", partyStatus.Invited[0], partyStatus.Invited[0]));
+        
         if (gameObject.GetComponent<Party>() == null)
         {
             gameObject.AddComponent<Party>();
@@ -170,8 +174,10 @@ public class NetworkedSocial : MonoBehaviour
         else
         {
             Debug.LogError("Leaving current party before joining another.");
-            // FindObjectOfType<Party>().LeaveParty();
+            
+            FindObjectOfType<Party>().LeaveParty();
             OnJoinedParty(channelName, partyStatus);
+            return;
         }
 
         object[] partyJoinSuccess = new object[] { (string)PhotonNetwork.player.CustomProperties["UniqueId"], channelName, UserStatusCode.PartyJoinSuccess };
