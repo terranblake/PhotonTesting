@@ -9,6 +9,7 @@ public class NetworkedManager : Photon.PunBehaviour
     public bool inRoomAndInitialized = false;
     public string PlayerPrefabName;
     public int PlayerId;
+    public string party;
     public static NetworkedManager Instance;
 
     private GameObject instance;
@@ -84,6 +85,9 @@ public class NetworkedManager : Photon.PunBehaviour
 
         Debug.Log((string)PhotonNetwork.player.CustomProperties["UniqueId"]);
         player = GameObject.Find((string)PhotonNetwork.player.CustomProperties["UniqueId"]);
+
+        if (party != null)
+            player.GetComponent<NetworkedSocial>().JoinParty(party);
 
         player.GetComponent<NetworkedSocial>().InitSocial();
         player.GetComponent<NetworkedClient>().InitClient();

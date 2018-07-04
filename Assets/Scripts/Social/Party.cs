@@ -152,6 +152,8 @@ public class Party : MonoBehaviour
         if (FindObjectOfType<NetworkedManager>().Room != _room)
         {
             FindObjectOfType<NetworkedManager>().Room = _room;
+            FindObjectOfType<NetworkedManager>().party = _leaderId;
+
             Debug.Log(string.Format("OnJoinPartyLobby()\t{0}", _room));
             PhotonNetwork.LeaveRoom();
         }
@@ -171,8 +173,7 @@ public class Party : MonoBehaviour
         if (
             this._name == null ||
             client == null ||
-            !this._joined.Contains((string)PhotonNetwork.player.CustomProperties["UniqueId"]) ||
-            this._invited.Contains(inviteeId) == false
+            !this._joined.Contains((string)PhotonNetwork.player.CustomProperties["UniqueId"])
             )
         {
             Debug.Log("There was an authentication issue while adding a player to the party");

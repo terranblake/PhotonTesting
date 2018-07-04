@@ -4880,6 +4880,7 @@ MonoBehaviour:
   inRoomAndInitialized: 0
   PlayerPrefabName: NetworkedPlayer
   PlayerId: 0
+  party: {fileID: 0}
 --- !u!4 &1397419002
 Transform:
   m_ObjectHideFlags: 0

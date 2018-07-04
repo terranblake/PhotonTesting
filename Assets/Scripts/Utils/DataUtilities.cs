@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Xml.Serialization;
 using UnityEngine;
@@ -82,29 +83,24 @@ public class DataUtilities : MonoBehaviour
         }
     }
 
-    public static string SerializeToString(object toSerialize)
+    public static Party GetCopyOf(Party comp, Party other)
     {
-        XmlSerializer xmlSerializer = new XmlSerializer(toSerialize.GetType());
-
-        using (StringWriter textWriter = new StringWriter())
-        {
-            xmlSerializer.Serialize(textWriter, toSerialize);
-            return textWriter.ToString();
+        Type type = comp.GetType();
+        if (type != other.GetType()) return null; // type mis-match
+        BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Default | BindingFlags.DeclaredOnly;
+        PropertyInfo[] pinfos = type.GetProperties(flags);
+        foreach (var pinfo in pinfos) {
+            if (pinfo.CanWrite) {
+                try {
+                    pinfo.SetValue(comp, pinfo.GetValue(other, null), null);
+                }
+                catch { } // In case of NotImplementedException being thrown. For some reason specifying that exception didn't seem to catch it, so I didn't catch anything specific.
+            }
         }
+        FieldInfo[] finfos = type.GetFields(flags);
+        foreach (var finfo in finfos) {
+            finfo.SetValue(comp, finfo.GetValue(other));
+        }
+        return comp as Party;
     }
-
-    // public static object Deserialize(string byteArray)
-    // {
-    //     if (byteArray == null)
-    //     {
-    //         return null;
-    //     }
-    //     using (var memStream = new MemoryStream())
-    //     {
-    //         var binForm = new BinaryFormatter();
-    //         memStream.Write(byteArray, 0, byteArray.Length);
-    //         memStream.Seek(0, SeekOrigin.Begin);
-    //         return (string)binForm.Deserialize(memStream);
-    //     }
-    // }
 }
